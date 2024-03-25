@@ -4,38 +4,36 @@ const ApiError = require("../../../errors/ApiError");
 var jwt = require("jsonwebtoken");
 
 const createUserInDB = async (payload) => {
-  const { name, gender, designation, phoneNumber, password } = payload;
+  let { name, email, address, role, password } = payload;
 
+  if (!role) {
+    role = "USER";
+  }
   const query =
-    "INSERT INTO users (name, gender, designation, phoneNumber, password) VALUES (?, ?, ?, ?, ?)";
-  const values = [name, gender, designation, phoneNumber, password];
+    "INSERT INTO users (name, email, address, role, password, createdAt, updatedAt) VALUES ($1, $2, $3, $4, $5, current_timestamp, current_timestamp) RETURNING id, name, email, address, role, createdAt, updatedAt";
+  const values = [name, email, address, role, password];
 
-  const selectQuery =
-    "SELECT name, gender, designation, phoneNumber FROM users WHERE id = LAST_INSERT_ID()";
-
-  await pool.promise().query(query, values);
-
-  const [createdUser] = (await pool.promise().query(selectQuery))[0];
-
+  const createdUser = (await pool.query(query, values)).rows[0];
   return createdUser;
 };
 
 const loginUser = async (payload) => {
-  const { phoneNumber, password } = payload;
-  const query = "SELECT * FROM users WHERE phoneNumber = ?";
-  const values = [phoneNumber];
+  const { email, password } = payload;
+  const query = "SELECT * FROM users WHERE email = $1";
+  const values = [email];
 
-  const [user] = (await pool.promise().query(query, values))[0];
+  const result = await pool.query(query, values);
+  const user = result.rows[0];
 
   if (user) {
     if (user.password === password) {
-      const { id, name, phonenumber } = user;
+      const { id, name, email } = user;
 
       const accessToken = jwt.sign(
         {
           id,
           name,
-          phonenumber,
+          email,
         },
         config.jwt.secret,
         { expiresIn: config.jwt.expires_in }

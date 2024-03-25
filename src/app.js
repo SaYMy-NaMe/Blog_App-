@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
-  res.send("You can create ToDo here!");
+  res.send("You can create Blog here!");
 });
 
 // Application routes
